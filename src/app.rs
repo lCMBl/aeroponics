@@ -1,3 +1,5 @@
+use egui::Visuals;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -24,6 +26,10 @@ impl TemplateApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+        cc.egui_ctx.set_visuals(Visuals {
+            dark_mode: true,
+            ..Default::default()
+        });
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
@@ -72,11 +78,17 @@ impl eframe::App for TemplateApp {
                 ui.label("Write something: ");
                 ui.text_edit_singleline(&mut self.label);
             });
-
+            
+            
             ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
                 self.value += 1.0;
             }
+
+            ui.horizontal(|ui| {
+                ui.label("Hello there again?: ");
+                ui.text_edit_singleline(&mut self.label);
+            });
 
             ui.separator();
 
@@ -90,6 +102,10 @@ impl eframe::App for TemplateApp {
                 egui::warn_if_debug_build(ui);
             });
         });
+
+        egui::Window::new("My Window").show(ctx, |ui| {
+            ui.label("Hello World!");
+         });
     }
 }
 
