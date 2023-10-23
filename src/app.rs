@@ -5,18 +5,25 @@ use egui::Visuals;
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
-    label: String,
+    // label: String,
 
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
+    // #[serde(skip)] // This how you opt-out of serialization of a field
+    // value: f32,
+    mister_on_time: f32,
+    mister_off_time: f32,
+    mist_status: bool,
+    timer_status: bool,
+    show_timer_confirm: bool,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            mister_on_time: 3.0,
+            mister_off_time: 180.0,
+            mist_status: false,
+            timer_status: false,
+            show_timer_confirm: false,
         }
     }
 }
@@ -70,55 +77,71 @@ impl eframe::App for TemplateApp {
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
-
+        egui::Window::new("Misting Control").show(ctx, |ui| {
+            ui.label("Controls the solenoid to the misters on a set schedule.");
+            ui.separator();
             ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
+                ui.label("On time:");
+                ui.add_enabled(!self.timer_status, egui::Slider::new(&mut self.mister_on_time, 1.0..=10.0).text("seconds"));
             });
-            
-            
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
-
             ui.horizontal(|ui| {
-                ui.label("Hello there again?: ");
-                ui.text_edit_singleline(&mut self.label);
+                ui.label("Off time:");
+                ui.add_enabled(!self.timer_status, egui::Slider::new(&mut self.mister_off_time, 60.0..=300.0).text("seconds"));
             });
-
             ui.separator();
 
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
+            let mist_status_text = if self.mist_status { "On" } else { "Off" }; 
+            ui.heading(format!("Mister Status: {}", mist_status_text));
+            ui.separator();
+
+            let next_cycle_status = if self.mist_status { "Off" } else { "On" }; 
+            ui.label(format!("Time till next {} cycle: {:02}:{:02}",
+                next_cycle_status,
+                3,
+                0
             ));
+            ui.separator();
 
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                powered_by_egui_and_eframe(ui);
-                egui::warn_if_debug_build(ui);
+            ui.horizontal(|ui| {
+                ui.heading("Timer Status:");
+                if self.timer_status {
+                    ui.label(egui::RichText::new("On").heading().color(egui::Color32::from_rgb(87, 165, 171)));
+                } else {
+                    ui.label(egui::RichText::new("Off").heading().color(egui::Color32::from_rgb(255, 100, 100)));
+                }
+                // red: 255, 100, 100
+                // green: 87, 165, 171
             });
-        });
+            ui.horizontal(|ui| {
+                if ui.button("Turn On").clicked() {
+                    self.timer_status = true;
+                }
 
-        egui::Window::new("My Window").show(ctx, |ui| {
-            ui.label("Hello World!");
+                if ui.button("Turn Off").clicked() {
+                    self.show_timer_confirm = true;
+                }
+            });
          });
-    }
-}
 
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
+         if self.show_timer_confirm {
+             egui::Window::new("Timer Change Confirmation").show(ctx, |ui| {
+                ui.label("Are you sure you wish to turn off the misting timer? Plants will dry out and die rapidly without active misting.");
+                ui.separator();
+                ui.with_layout(
+                    egui::Layout::left_to_right(egui::Align::TOP),
+                    // .with_cross_align(egui::Align::Center),
+                |ui| {
+                    if ui.button("Turn Off").clicked() {
+                        self.timer_status = false;
+                        self.show_timer_confirm = false;
+                    }
+    
+                    if ui.button("Cancel").clicked() {
+                        self.show_timer_confirm = false;
+                    }
+                });
+             });
+         }
+
+    }
 }
